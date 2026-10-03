@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 2 Assignment | All-in-One Task Manager Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        code, pre { font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #020617; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
+    </style>
+</head>
+<body class="min-h-full flex flex-col bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- Header Banner -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25">
+                    <i data-lucide="layers" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-white flex items-center gap-2">
+                        TaskFlow Assignment Hub
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            Live Server Online
+                        </span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Node.js + Express.js + File System (<code class="text-indigo-300">fs</code>) Module</p>
+                </div>
+            </div>
+
+            <!-- Live Server Link Button -->
+            <div class="flex items-center gap-3">
+                <a 
+                    href="http://localhost:3000" 
+                    target="_blank" 
+                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-semibold text-sm shadow-lg shadow-indigo-500/30 hover:scale-105 transition-all duration-200"
+                >
+                    <i data-lucide="external-link" class="w-4 h-4"></i>
+                    <span>Open http://localhost:3000</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-1 w-full space-y-8">
+
+        <!-- Top Live Status Card -->
+        <section class="bg-gradient-to-br from-indigo-950/40 via-slate-900 to-slate-950 border border-indigo-500/30 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                <div>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-300 text-xs font-semibold mb-3 border border-indigo-500/20">
+                        <i data-lucide="radio" class="w-3.5 h-3.5"></i> Active Localhost Server
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white">
+                        Your Express App is Running!
+                    </h2>
+                    <p class="text-slate-300 text-sm mt-2 max-w-2xl leading-relaxed">
+                        The web application is live at <a href="http://localhost:3000" target="_blank" class="text-indigo-400 font-mono underline hover:text-indigo-300">http://localhost:3000</a>. It writes tasks directly to the filesystem (<code class="text-indigo-300 font-mono">.txt</code> files) and renders interactive cards with a complete <strong>Read More</strong> modal/page.
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3">
+                    <a 
+                        href="http://localhost:3000" 
+                        target="_blank" 
+                        class="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-xl shadow-indigo-600/30 flex items-center gap-2 transition"
+                    >
+                        <i data-lucide="globe" class="w-4 h-4"></i>
+                        <span>Launch Task Manager</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Live Embedded Iframe Preview -->
+        <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="flex gap-1.5">
+                        <span class="w-3 h-3 rounded-full bg-red-500/80"></span>
+                        <span class="w-3 h-3 rounded-full bg-yellow-500/80"></span>
+                        <span class="w-3 h-3 rounded-full bg-emerald-500/80"></span>
+                    </div>
+                    <span class="text-xs font-mono text-slate-400 ml-2">Embedded Live View: http://localhost:3000</span>
+                </div>
+                <button onclick="document.getElementById('liveFrame').src = document.getElementById('liveFrame').src" class="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh Frame
+                </button>
+            </div>
+            
+            <div class="w-full h-[650px] rounded-xl overflow-hidden border border-slate-800 bg-slate-950">
+                <iframe id="liveFrame" src="http://localhost:3000" class="w-full h-full border-0"></iframe>
+            </div>
+        </section>
+
+        <!-- Requirements & Implementation Verification -->
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 space-y-2">
+                <div class="flex items-center gap-2 text-indigo-400 font-bold text-sm">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                    <span>1. Task Creation</span>
+                </div>
+                <p class="text-xs text-slate-400">
+                    Extracts <code class="text-indigo-300">req.body.title</code> & <code class="text-indigo-300">description</code>, writes <code class="text-indigo-300">.txt</code> using <code class="text-indigo-300">fs.writeFile</code>.
+                </p>
+            </div>
+
+            <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 space-y-2">
+                <div class="flex items-center gap-2 text-cyan-400 font-bold text-sm">
+                    <i data-lucide="grid" class="w-4 h-4"></i>
+                    <span>2. Card Grid Display</span>
+                </div>
+                <p class="text-xs text-slate-400">
+                    Reads directory with <code class="text-cyan-300">fs.readdir</code> and renders responsive cards with snippet previews.
+                </p>
+            </div>
+
+            <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 space-y-2">
+                <div class="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                    <span>3. "Read More" View</span>
+                </div>
+                <p class="text-xs text-slate-400">
+                    Route parameter <code class="text-emerald-300">req.params.filename</code> with <code class="text-emerald-300">fs.readFile</code> renders full task.
+                </p>
+            </div>
+
+            <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 space-y-2">
+                <div class="flex items-center gap-2 text-amber-400 font-bold text-sm">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                    <span>4. Security & Safety</span>
+                </div>
+                <p class="text-xs text-slate-400">
+                    Filename sanitization & path traversal confinement prevent security exploits.
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500">
+        Week2Assignment &bull; Created on Desktop &bull; Express.js & Node.js fs Project
+    </footer>
+
+    <script>
+        if (window.lucide) lucide.createIcons();
+    </script>
+</body>
+</html>

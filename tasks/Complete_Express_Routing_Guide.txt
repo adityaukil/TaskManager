@@ -1,0 +1,16 @@
+Express.js is a fast, unopinionated, minimalist web framework for Node.js.
+
+Key Routing Patterns used in this application:
+- Route Parameters (req.params):
+  Captured via named route segments like `/task/:filename`. Extracted in handlers using `req.params.filename`.
+  
+- Request Body (req.body):
+  Contains key-value pairs of data submitted in the request body. Configured using `express.urlencoded({ extended: true })` for HTML form submissions and `express.json()` for JSON payloads.
+
+- HTTP Verbs:
+  - GET / : Retrieve and render the task dashboard.
+  - POST /create : Create a new task file from form data.
+  - GET /task/:filename : Read and display a single task file.
+  - POST /edit/:filename : Update task content and rename file.
+  - POST /delete/:filename : Remove a task file from the storage directory.
+  - GET /download/:filename : Send the raw text file to the client browser.

@@ -1,0 +1,34 @@
+<%- include('partials/header') %>
+<%- include('partials/navbar') %>
+
+<main class="flex-1 max-w-2xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center flex flex-col items-center justify-center">
+
+    <div class="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 mb-6 shadow-xl shadow-red-500/10">
+        <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+    </div>
+
+    <h1 class="text-3xl font-extrabold text-white mb-2">
+        <%= typeof title !== 'undefined' ? title : 'An Error Occurred' %>
+    </h1>
+
+    <p class="text-slate-400 text-base max-w-md mx-auto mb-6">
+        <%= typeof message !== 'undefined' ? message : 'Something went wrong while accessing the filesystem or route.' %>
+    </p>
+
+    <% if (typeof error !== 'undefined' && error && error.stack) { %>
+        <div class="w-full text-left bg-slate-950/80 border border-slate-800 rounded-xl p-4 mb-6 font-mono text-xs text-red-300 overflow-x-auto">
+            <%= error.message %>
+        </div>
+    <% } %>
+
+    <a 
+        href="/" 
+        class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/30 transition"
+    >
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        <span>Return to Dashboard</span>
+    </a>
+
+</main>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,28 @@
+{
+  "name": "week2-assignment-task-manager",
+  "version": "1.0.0",
+  "description": "A high-performance Task Manager web application built with Node.js, Express.js, EJS, and the native File System (fs) module.",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "fs",
+    "filesystem",
+    "task-manager",
+    "ejs",
+    "assignment"
+  ],
+  "author": "Aditya",
+  "license": "ISC",
+  "dependencies": {
+    "ejs": "^3.1.10",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}

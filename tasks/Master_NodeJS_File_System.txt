@@ -1,0 +1,14 @@
+Understanding the Node.js File System (fs) module is essential for backend engineering.
+
+Key Concepts Covered:
+1. Synchronous vs Asynchronous file operations (always prefer non-blocking async operations in web servers).
+2. fs.writeFile() / fs.promises.writeFile(): Writes data to a file, replacing it if it already exists.
+3. fs.readFile(): Reads the entire contents of a file into memory. Pass 'utf-8' encoding to get clean string output.
+4. fs.readdir(): Reads the contents of a directory, returning an array of filenames.
+5. fs.stat(): Retrieves detailed file metadata including creation time (birthtime), modification time (mtime), and file size in bytes.
+6. fs.unlink(): Deletes a file from the disk.
+
+Best Practices:
+- Always sanitize filenames before writing to disk to prevent Directory Traversal vulnerabilities.
+- Handle error callbacks or use try/catch blocks with async/await.
+- Provide proper permissions and ensure directory existence before writing.

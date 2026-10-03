@@ -1,0 +1,146 @@
+<%- include('partials/header') %>
+<%- include('partials/navbar') %>
+
+<main class="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
+
+    <!-- Top Navigation Bar -->
+    <div class="flex items-center justify-between gap-4">
+        <a 
+            href="/" 
+            class="inline-flex items-center gap-2 text-sm font-bold text-slate-300 hover:text-white px-4 py-2.5 rounded-2xl bg-slate-900 border border-slate-700/80 hover:border-violet-500/50 transition shadow-md"
+        >
+            <i data-lucide="arrow-left" class="w-4 h-4 text-violet-400"></i>
+            <span>Back to All Tasks</span>
+        </a>
+
+        <!-- Quick actions -->
+        <div class="flex items-center gap-2">
+            <button 
+                id="copyContentBtn" 
+                onclick="copyTaskContent()" 
+                class="inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700/80 hover:border-slate-600 transition cursor-pointer"
+                title="Copy Content"
+            >
+                <i data-lucide="copy" class="w-4 h-4" id="copyIcon"></i>
+                <span id="copyText">Copy Text</span>
+            </button>
+
+            <a 
+                href="/download/<%= encodeURIComponent(task.filename) %>" 
+                class="inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700/80 hover:border-slate-600 transition"
+                title="Download .txt"
+            >
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span>Download</span>
+            </a>
+
+            <a 
+                href="/edit/<%= encodeURIComponent(task.filename) %>" 
+                class="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white transition shadow-lg shadow-violet-600/30"
+            >
+                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                <span>Edit</span>
+            </a>
+
+            <form 
+                action="/delete/<%= encodeURIComponent(task.filename) %>" 
+                method="POST" 
+                onsubmit="return confirm('Permanently delete this task file from disk?');" 
+                class="inline m-0"
+            >
+                <button 
+                    type="submit" 
+                    class="p-2.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl border border-transparent hover:border-red-500/20 transition cursor-pointer"
+                    title="Delete Task"
+                >
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Task Detail Card (Full View) -->
+    <article class="bg-slate-900/90 border border-violet-500/25 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-2xl relative overflow-hidden">
+        
+        <!-- Task Metadata Header -->
+        <header class="border-b border-slate-800 pb-6 mb-6">
+            <div class="flex flex-wrap items-center gap-2 mb-3">
+                <span class="inline-flex items-center gap-1.5 font-mono text-xs font-semibold px-3 py-1 rounded-lg bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5 text-emerald-400"></i>
+                    <%= task.filename %>
+                </span>
+                <span class="text-xs text-emerald-400 font-mono font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                    <%= (task.sizeBytes / 1024).toFixed(2) %> KB
+                </span>
+            </div>
+
+            <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-snug">
+                <%= task.title %>
+            </h1>
+
+            <div class="flex flex-wrap items-center gap-y-2 gap-x-6 text-xs text-slate-400 mt-4 font-mono">
+                <span class="flex items-center gap-1.5">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5 text-violet-400"></i>
+                    Last Modified: <%= new Date(task.modifiedAt).toLocaleString() %>
+                </span>
+                <span class="flex items-center gap-1.5">
+                    <i data-lucide="align-left" class="w-3.5 h-3.5 text-emerald-400"></i>
+                    <%= task.wordCount %> <%= task.wordCount === 1 ? 'word' : 'words' %> (<%= task.charCount %> chars)
+                </span>
+            </div>
+        </header>
+
+        <!-- Task Content Body - Displays Full Unrestricted Text -->
+        <div class="w-full">
+            <% if (task.content && task.content.trim().length > 0) { %>
+                <div id="taskContentBlock" class="text-slate-100 text-base sm:text-lg leading-relaxed whitespace-pre-wrap break-words font-sans bg-slate-950/70 p-6 sm:p-8 rounded-2xl border border-slate-800/80 font-normal selection:bg-violet-600 selection:text-white"><%= task.content %></div>
+            <% } else { %>
+                <div class="text-slate-500 italic py-8 text-center bg-slate-950/30 rounded-2xl border border-slate-800/50">
+                    <i data-lucide="file-question" class="w-6 h-6 mx-auto mb-2 text-slate-600"></i>
+                    This task has an empty description.
+                </div>
+            <% } %>
+        </div>
+
+        <!-- Clean Bottom Navigation Bar -->
+        <div class="mt-8 pt-6 border-t border-slate-800 flex items-center justify-between">
+            <span class="text-xs text-slate-500 font-mono">
+                Saved in <code class="text-slate-400">tasks/<%= task.filename %></code>
+            </span>
+            <a 
+                href="/" 
+                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600/20 to-emerald-600/20 hover:from-violet-600/30 hover:to-emerald-600/30 text-violet-200 border border-violet-500/30 text-sm font-bold transition shadow-sm"
+            >
+                <span>View all tasks</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </a>
+        </div>
+
+    </article>
+
+</main>
+
+<script>
+function copyTaskContent() {
+    const textElement = document.getElementById('taskContentBlock');
+    if (!textElement) return;
+    
+    const text = textElement.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        const copyText = document.getElementById('copyText');
+        const copyIcon = document.getElementById('copyIcon');
+        
+        copyText.textContent = 'Copied!';
+        copyText.classList.add('text-emerald-400');
+        
+        setTimeout(() => {
+            copyText.textContent = 'Copy Text';
+            copyText.classList.remove('text-emerald-400');
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy text: ', err);
+    });
+}
+</script>
+
+<%- include('partials/footer') %>

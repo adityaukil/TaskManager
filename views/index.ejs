@@ -1,0 +1,338 @@
+<%- include('partials/header') %>
+<%- include('partials/navbar') %>
+
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-12">
+    
+    <!-- Task Creation Section -->
+    <section id="create-task-section" class="relative">
+        <div class="absolute -top-16 -left-16 w-80 h-80 bg-violet-500/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -top-16 -right-16 w-80 h-80 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative bg-slate-900/80 border border-violet-500/20 rounded-3xl p-6 sm:p-8 backdrop-blur-2xl shadow-2xl shadow-violet-950/20">
+            <div class="max-w-2xl mb-6">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-violet-500/20 to-emerald-500/20 border border-violet-500/30 text-violet-300 text-xs font-bold uppercase tracking-wider mb-2">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-400"></i> Easy Task Creator
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                    Add a New Task
+                </h1>
+                <p class="text-slate-400 text-sm mt-1">
+                    Tasks are instantly written to disk as <code class="text-emerald-400 font-mono font-medium">.txt</code> files via Node.js <code class="text-violet-400 font-mono font-medium">fs.writeFile</code>.
+                </p>
+            </div>
+
+            <!-- Task Form -->
+            <form action="/create" method="POST" class="space-y-5" id="taskCreateForm">
+                <div>
+                    <label for="title" class="block text-sm font-semibold text-slate-200 mb-2">
+                        Task Title <span class="text-violet-400">*</span>
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="title" 
+                            name="title" 
+                            required 
+                            placeholder="e.g., Master Node.js Event Loop & fs" 
+                            class="w-full px-4 py-3.5 bg-slate-950/60 border border-slate-700/80 rounded-2xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition duration-200 text-base"
+                            autocomplete="off"
+                        >
+                        <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-violet-400">
+                            <i data-lucide="pencil-line" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="description" class="block text-sm font-semibold text-slate-200 mb-2">
+                        Task Description / Full Notes
+                    </label>
+                    <textarea 
+                        id="description" 
+                        name="description" 
+                        rows="4" 
+                        placeholder="Write detailed task requirements, notes, code snippets, or checklists..." 
+                        class="w-full px-4 py-3.5 bg-slate-950/60 border border-slate-700/80 rounded-2xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition duration-200 text-base resize-y"
+                    ></textarea>
+                </div>
+
+                <div class="flex items-center justify-end pt-2">
+                    <button 
+                        type="submit" 
+                        class="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-emerald-600 hover:from-violet-500 hover:to-emerald-500 text-white font-bold text-sm shadow-xl shadow-violet-600/30 hover:shadow-violet-600/50 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer"
+                    >
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                        <span>Save Task</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- Tasks Display Section -->
+    <section class="space-y-6">
+        
+        <!-- Controls Bar: Title, Total Tasks Counter & Morphing Layout Toggle -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+            <div class="flex items-center gap-3">
+                <h2 class="text-2xl font-extrabold text-white flex items-center gap-2">
+                    <i data-lucide="layers" class="w-6 h-6 text-violet-400"></i>
+                    All Tasks
+                </h2>
+                <!-- Total Tasks Counter Badge -->
+                <span class="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-extrabold bg-gradient-to-r from-violet-500/20 to-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm">
+                    <%= totalCount %> <%= totalCount === 1 ? 'Task Saved' : 'Total Tasks' %>
+                </span>
+            </div>
+
+            <!-- Right Controls: Morphing Layout Mode Switcher + Live Search -->
+            <div class="flex flex-wrap items-center gap-3">
+                <% if (tasks && tasks.length > 0) { %>
+                    <!-- Morphing Layout Mode Toggle (Stack | Grid | List) -->
+                    <div class="flex items-center rounded-2xl bg-slate-900 border border-slate-800 p-1 shadow-inner">
+                        <button 
+                            type="button" 
+                            onclick="setLayoutMode('stack')" 
+                            id="btn-layout-stack"
+                            class="layout-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md"
+                            title="Interactive Card Stack (Drag & Swipe to flip)"
+                        >
+                            <i data-lucide="layers" class="w-4 h-4"></i>
+                            <span class="hidden md:inline">Stack</span>
+                        </button>
+                        <button 
+                            type="button" 
+                            onclick="setLayoutMode('grid')" 
+                            id="btn-layout-grid"
+                            class="layout-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                            title="Grid Mode"
+                        >
+                            <i data-lucide="grid-3x3" class="w-4 h-4"></i>
+                            <span class="hidden md:inline">Grid</span>
+                        </button>
+                        <button 
+                            type="button" 
+                            onclick="setLayoutMode('list')" 
+                            id="btn-layout-list"
+                            class="layout-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                            title="List Mode"
+                        >
+                            <i data-lucide="layout-list" class="w-4 h-4"></i>
+                            <span class="hidden md:inline">List</span>
+                        </button>
+                    </div>
+
+                    <!-- Search Filter -->
+                    <div class="relative w-full sm:w-60">
+                        <input 
+                            type="text" 
+                            id="taskSearchInput" 
+                            placeholder="Search tasks..." 
+                            class="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700/80 rounded-2xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500 transition shadow-inner"
+                        >
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-violet-400">
+                            <i data-lucide="search" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <% if (!tasks || tasks.length === 0) { %>
+            <!-- Empty State -->
+            <div class="bg-slate-900/50 border border-dashed border-slate-800 rounded-3xl p-12 text-center max-w-lg mx-auto">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-violet-500/20 to-emerald-500/20 border border-violet-500/30 flex items-center justify-center mx-auto text-emerald-400 mb-4 shadow-lg shadow-emerald-500/10">
+                    <i data-lucide="sparkles" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-xl font-extrabold text-white mb-1">No tasks stored yet</h3>
+                <p class="text-sm text-slate-400 mb-6">
+                    Fill in the form above to save your first task directly to disk.
+                </p>
+                <a href="#title" onclick="document.getElementById('title').focus()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-sm font-bold shadow-lg shadow-violet-600/30 transition">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Create Your First Task</span>
+                </a>
+            </div>
+        <% } else { %>
+            
+            <!-- Morphing Card Stack Section -->
+            <div id="morphingStackContainer" class="w-full py-4 transition-all duration-300">
+                
+                <!-- Stack Navigation Arrows (Left / Right controls) -->
+                <div class="relative flex items-center justify-center">
+                    
+                    <button 
+                        id="stackPrevBtn"
+                        onclick="flipStackPrev()"
+                        class="hidden sm:flex items-center justify-center w-12 h-12 rounded-full bg-slate-900/90 hover:bg-violet-600 text-slate-300 hover:text-white border border-slate-700 hover:border-violet-500 shadow-xl transition-all duration-200 z-30 cursor-pointer mr-4 hover:scale-110 active:scale-95"
+                        title="Previous Card"
+                    >
+                        <i data-lucide="chevron-left" class="w-6 h-6"></i>
+                    </button>
+
+                    <!-- Inner Tasks Wrapper -->
+                    <div id="tasksWrapper" class="stack-view relative mx-auto transition-all duration-300">
+                        <% tasks.forEach((task, index) => { %>
+                            <div 
+                                class="morph-card group bg-slate-900/95 border border-slate-800/90 hover:border-violet-500/60 rounded-3xl p-6 sm:p-7 transition-all duration-300 shadow-2xl relative cursor-grab active:cursor-grabbing select-none"
+                                data-index="<%= index %>"
+                                data-title="<%= task.title.replace(/"/g, '&quot;') %>"
+                                data-filename="<%= task.filename %>"
+                                data-words="<%= task.wordCount %>"
+                                data-chars="<%= task.charCount %>"
+                                data-content="<%= encodeURIComponent(task.fullContent) %>"
+                                data-date="<%= new Date(task.modifiedAt).toLocaleString() %>"
+                            >
+                                <!-- Top Card Header -->
+                                <div class="flex items-center justify-between gap-2 mb-3">
+                                    <span class="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold px-3 py-1 rounded-lg bg-slate-800 text-violet-300 border border-violet-500/20 truncate max-w-[210px]">
+                                        <i data-lucide="file-text" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                                        <span class="truncate"><%= task.filename %></span>
+                                    </span>
+                                    <span class="text-[11px] text-emerald-400 font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                                        <%= task.wordCount %> <%= task.wordCount === 1 ? 'word' : 'words' %>
+                                    </span>
+                                </div>
+
+                                <!-- Title -->
+                                <h3 class="task-title text-xl font-extrabold text-white group-hover:text-violet-300 transition-colors line-clamp-2 mb-2 leading-snug">
+                                    <%= task.title %>
+                                </h3>
+
+                                <!-- Snippet Preview -->
+                                <p class="task-snippet text-sm text-slate-300 line-clamp-3 mb-6 leading-relaxed whitespace-pre-line">
+                                    <%= task.snippet %>
+                                </p>
+
+                                <!-- Card Footer with Read More & Actions -->
+                                <div class="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3 mt-auto">
+                                    <!-- Read More Button (Opens full text modal) -->
+                                    <button 
+                                        type="button"
+                                        onclick="openTaskModal(event, <%= index %>)"
+                                        class="inline-flex items-center gap-2 text-sm font-bold text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer group/btn"
+                                    >
+                                        <span>Read More</span>
+                                        <i data-lucide="arrow-right" class="w-4 h-4 group-hover/btn:translate-x-1 transition-transform"></i>
+                                    </button>
+
+                                    <!-- Card Actions -->
+                                    <div class="flex items-center gap-1" onpointerdown="event.stopPropagation()">
+                                        <a 
+                                            href="/task/<%= encodeURIComponent(task.filename) %>" 
+                                            class="p-2 text-slate-400 hover:text-violet-300 hover:bg-slate-800 rounded-xl transition-colors" 
+                                            title="Dedicated Page View"
+                                        >
+                                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                                        </a>
+                                        <a 
+                                            href="/edit/<%= encodeURIComponent(task.filename) %>" 
+                                            class="p-2 text-slate-400 hover:text-emerald-300 hover:bg-slate-800 rounded-xl transition-colors" 
+                                            title="Edit Task"
+                                        >
+                                            <i data-lucide="pencil" class="w-4 h-4"></i>
+                                        </a>
+                                        <form 
+                                            action="/delete/<%= encodeURIComponent(task.filename) %>" 
+                                            method="POST" 
+                                            onsubmit="return confirm('Are you sure you want to delete <%= task.title %> from disk?');"
+                                            class="inline m-0 p-0"
+                                        >
+                                            <button 
+                                                type="submit" 
+                                                class="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer" 
+                                                title="Delete Task"
+                                            >
+                                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+
+                    <button 
+                        id="stackNextBtn"
+                        onclick="flipStackNext()"
+                        class="hidden sm:flex items-center justify-center w-12 h-12 rounded-full bg-slate-900/90 hover:bg-violet-600 text-slate-300 hover:text-white border border-slate-700 hover:border-violet-500 shadow-xl transition-all duration-200 z-30 cursor-pointer ml-4 hover:scale-110 active:scale-95"
+                        title="Next Card"
+                    >
+                        <i data-lucide="chevron-right" class="w-6 h-6"></i>
+                    </button>
+
+                </div>
+
+                <!-- Stack Pagination / Navigation Dots (visible in Stack mode) -->
+                <div id="stackDotsContainer" class="flex justify-center items-center gap-2 mt-8 py-2">
+                    <% tasks.forEach((_, i) => { %>
+                        <button 
+                            type="button"
+                            onclick="setStackActiveIndex(<%= i %>)"
+                            class="stack-dot h-2.5 rounded-full transition-all duration-300 <%= i === 0 ? 'w-8 bg-gradient-to-r from-violet-500 to-emerald-400' : 'w-2.5 bg-slate-700 hover:bg-slate-500' %>"
+                            aria-label="Go to task <%= i + 1 %>"
+                        ></button>
+                    <% }) %>
+                </div>
+
+                <div id="stackSwipeHint" class="text-center text-xs text-slate-400 mt-2 font-medium flex items-center justify-center gap-1.5">
+                    <i data-lucide="move-horizontal" class="w-4 h-4 text-emerald-400"></i>
+                    <span>Drag and throw the top card left or right to flip</span>
+                </div>
+
+            </div>
+
+            <!-- No search results state -->
+            <div id="noSearchState" class="hidden bg-slate-900/40 border border-dashed border-slate-800 rounded-3xl p-8 text-center max-w-md mx-auto">
+                <i data-lucide="search-x" class="w-8 h-8 text-slate-500 mx-auto mb-2"></i>
+                <h4 class="text-base font-semibold text-slate-300">No matching tasks found</h4>
+                <p class="text-xs text-slate-500 mt-1">Try searching for a different keyword.</p>
+            </div>
+        <% } %>
+    </section>
+
+</main>
+
+<!-- Full Read More Modal for viewing the complete text cleanly without clipping -->
+<div id="readMoreModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-violet-500/30 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <!-- Modal Header -->
+        <div class="px-6 py-5 border-b border-slate-800 flex items-center justify-between">
+            <div>
+                <span id="modalFilename" class="text-xs font-mono font-semibold px-3 py-1 rounded-lg bg-violet-500/10 text-violet-300 border border-violet-500/20"></span>
+                <h3 id="modalTitle" class="text-2xl font-extrabold text-white mt-2"></h3>
+                <div class="flex items-center gap-4 text-xs text-slate-400 mt-1.5 font-mono">
+                    <span id="modalDate"></span>
+                    <span id="modalWords" class="text-emerald-400"></span>
+                </div>
+            </div>
+            <button onclick="closeTaskModal()" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body (Full Complete Text Display with word wrap) -->
+        <div class="p-6 overflow-y-auto flex-1">
+            <div id="modalContent" class="text-slate-100 text-base sm:text-lg leading-relaxed whitespace-pre-wrap break-words font-sans bg-slate-950/60 p-6 sm:p-7 rounded-2xl border border-slate-800/80"></div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="px-6 py-4 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <button onclick="copyModalContent()" id="modalCopyBtn" class="inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition cursor-pointer">
+                    <i data-lucide="copy" class="w-3.5 h-3.5" id="modalCopyIcon"></i>
+                    <span id="modalCopyText">Copy Text</span>
+                </button>
+                <a id="modalDirectLink" href="#" class="inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                    <span>Dedicated Page</span>
+                </a>
+            </div>
+            <button onclick="closeTaskModal()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-emerald-600 hover:from-violet-500 hover:to-emerald-500 text-white text-xs font-extrabold shadow-lg shadow-violet-600/30 transition cursor-pointer">
+                Done
+            </button>
+        </div>
+    </div>
+</div>
+
+<%- include('partials/footer') %>

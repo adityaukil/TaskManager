@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow | File-Based Task Manager</title>
+    
+    <!-- Google Fonts: Outfit & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Outfit"', 'system-ui', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body { font-family: 'Outfit', sans-serif; scroll-behavior: smooth; }
+        code, pre { font-family: 'JetBrains Mono', monospace; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #8b5cf6; }
+
+        /* Morphing Card Stack Layout Modes */
+        #tasksWrapper.stack-view {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+            height: 380px;
+            margin: 0 auto;
+            touch-action: none;
+        }
+
+        #tasksWrapper.stack-view .morph-card {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 340px;
+            user-select: none;
+            touch-action: none;
+            will-change: transform, opacity;
+        }
+
+        #tasksWrapper.grid-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+            position: static;
+            max-width: 100%;
+            height: auto;
+        }
+
+        #tasksWrapper.grid-view .morph-card {
+            position: static;
+            width: 100%;
+            height: auto;
+            transform: none !important;
+            z-index: 1 !important;
+            touch-action: auto;
+        }
+
+        #tasksWrapper.list-view {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            position: static;
+            max-width: 100%;
+            height: auto;
+        }
+
+        #tasksWrapper.list-view .morph-card {
+            position: static;
+            width: 100%;
+            height: auto;
+            transform: none !important;
+            z-index: 1 !important;
+            touch-action: auto;
+        }
+
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        input:focus, textarea:focus {
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.35);
+        }
+    </style>
+</head>
+<body class="min-h-full flex flex-col bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-slate-100 antialiased selection:bg-violet-500 selection:text-white">
+
+    <!-- Sticky Navbar -->
+    <header class="sticky top-0 z-50 backdrop-blur-xl bg-slate-900/85 border-b border-violet-500/20 shadow-lg shadow-indigo-950/40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 sm:h-20">
+                <!-- Brand Logo -->
+                <a href="#" class="flex items-center gap-3 group">
+                    <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-violet-500 via-indigo-500 to-emerald-400 p-0.5 shadow-lg shadow-violet-500/30 group-hover:scale-105 transition-transform duration-300">
+                        <div class="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center">
+                            <i data-lucide="sparkles" class="w-5 h-5 text-violet-400 group-hover:text-emerald-400 transition-colors"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="text-2xl font-extrabold bg-gradient-to-r from-white via-violet-200 to-emerald-300 bg-clip-text text-transparent">TaskFlow</span>
+                        <span class="hidden sm:inline-block ml-2 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Single File App</span>
+                    </div>
+                </a>
+
+                <!-- Create Shortcut Button -->
+                <div class="flex items-center gap-3">
+                    <a href="#create-task-section" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-600/30 hover:shadow-violet-600/50 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Create Task</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-12">
+        
+        <!-- Task Creation Section -->
+        <section id="create-task-section" class="relative">
+            <div class="absolute -top-16 -left-16 w-80 h-80 bg-violet-500/15 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -top-16 -right-16 w-80 h-80 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="relative bg-slate-900/80 border border-violet-500/20 rounded-3xl p-6 sm:p-8 backdrop-blur-2xl shadow-2xl shadow-violet-950/20">
+                <div class="max-w-2xl mb-6">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-violet-500/20 to-emerald-500/20 border border-violet-500/30 text-violet-300 text-xs font-bold uppercase tracking-wider mb-2">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-400"></i> Fast Task Storage
+                    </div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                        Add a New Task
+                    </h1>
+                    <p class="text-slate-400 text-sm mt-1">
+                        Tasks are saved with full metadata and can be downloaded as real <code class="text-emerald-400 font-mono font-medium">.txt</code> files.
+                    </p>
+                </div>
+
+                <!-- Task Form -->
+                <form id="createTaskForm" onsubmit="handleCreateTask(event)" class="space-y-5">
+                    <div>
+                        <label for="taskTitleInput" class="block text-sm font-semibold text-slate-200 mb-2">
+                            Task Title <span class="text-violet-400">*</span>
+                        </label>
+                        <div class="relative">
+                            <input 
+                                type="text" 
+                                id="taskTitleInput" 
+                                required 
+                                placeholder="e.g., Master Node.js Event Loop & fs" 
+                                class="w-full px-4 py-3.5 bg-slate-950/60 border border-slate-700/80 rounded-2xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition duration-200 text-base"
+                                autocomplete="off"
+                            >
+                            <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-violet-400">
+                                <i data-lucide="pencil-line" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="taskDescInput" class="block text-sm font-semibold text-slate-200 mb-2">
+                            Task Description / Full Notes
+                        </label>
+                        <textarea 
+                            id="taskDescInput" 
+                            rows="4" 
+                            placeholder="Write detailed task requirements, notes, code snippets, or checklists..." 
+                            class="w-full px-4 py-3.5 bg-slate-950/60 border border-slate-700/80 rounded-2xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition duration-200 text-base resize-y"
+                        ></textarea>
+                    </div>
+
+                    <div class="flex items-center justify-end pt-2">
+                        <button 
+                            type="submit" 
+                            class="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-emerald-600 hover:from-violet-500 hover:to-emerald-500 text-white font-bold text-sm shadow-xl shadow-violet-600/30 hover:shadow-violet-600/50 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer"
+                        >
+                            <i data-lucide="check" class="w-4 h-4"></i>
+                            <span>Save Task</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- Tasks Display Section -->
+        <section class="space-y-6">
+            
+            <!-- Controls Bar: Title, Total Tasks Counter & Morphing Layout Toggle -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                <div class="flex items-center gap-3">
+                    <h2 class="text-2xl font-extrabold text-white flex items-center gap-2">
+                        <i data-lucide="layers" class="w-6 h-6 text-violet-400"></i>
+                        All Tasks
+                    </h2>
+                    <!-- Total Tasks Counter Badge -->
+                    <span id="totalTasksBadge" class="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-extrabold bg-gradient-to-r from-violet-500/20 to-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm">
+                        Total: 0 Tasks
+                    </span>
+                </div>
+
+                <!-- Right Controls: Morphing Layout Mode Switcher + Live Search -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <!-- Morphing Layout Mode Toggle (Stack | Grid | List) -->
+                    <div class="flex items-center rounded-2xl bg-slate-900 border border-slate-800 p-1 shadow-inner">
+                        <button 
+                            type="button" 
+                            onclick="setLayoutMode('stack')" 
+                            id="btn-layout-stack"
+                            class="layout-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md"
+                            title="Interactive Card Stack (Drag & Swipe to flip)"
+                        >
+                            <i data-lucide="layers" class="w-4 h-4"></i>
+                            <span class="hidden md:inline">Stack</span>
+                        </button>
+                        <button 
+                            type="button" 
+                            onclick="setLayoutMode('grid')" 
+                            id="btn-layout-grid"
+                            class="layout-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                            title="Grid Mode"
+                        >
+                            <i data-lucide="grid-3x3" class="w-4 h-4"></i>
+                            <span class="hidden md:inline">Grid</span>
+                        </button>
+                        <button 
+                            type="button" 
+                            onclick="setLayoutMode('list')" 
+                            id="btn-layout-list"
+                            class="layout-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                            title="List Mode"
+                        >
+                            <i data-lucide="layout-list" class="w-4 h-4"></i>
+                            <span class="hidden md:inline">List</span>
+                        </button>
+                    </div>
+
+                    <!-- Search Filter -->
+                    <div class="relative w-full sm:w-60">
+                        <input 
+                            type="text" 
+                            id="taskSearchInput" 
+                            oninput="filterTasks()" 
+                            placeholder="Search tasks..." 
+                            class="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700/80 rounded-2xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500 transition shadow-inner"
+                        >
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-violet-400">
+                            <i data-lucide="search" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State (hidden when tasks exist) -->
+            <div id="emptyState" class="hidden bg-slate-900/50 border border-dashed border-slate-800 rounded-3xl p-12 text-center max-w-lg mx-auto">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-violet-500/20 to-emerald-500/20 border border-violet-500/30 flex items-center justify-center mx-auto text-emerald-400 mb-4 shadow-lg shadow-emerald-500/10">
+                    <i data-lucide="sparkles" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-xl font-extrabold text-white mb-1">No tasks stored yet</h3>
+                <p class="text-sm text-slate-400 mb-6">
+                    Fill in the form above to add your first task.
+                </p>
+                <a href="#taskTitleInput" onclick="document.getElementById('taskTitleInput').focus()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-sm font-bold shadow-lg shadow-violet-600/30 transition">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Create First Task</span>
+                </a>
+            </div>
+
+            <!-- Morphing Card Stack Section -->
+            <div id="morphingStackContainer" class="w-full py-4 transition-all duration-300">
+                
+                <!-- Stack Navigation Arrows -->
+                <div class="relative flex items-center justify-center">
+                    
+                    <button 
+                        id="stackPrevBtn"
+                        onclick="flipStackPrev()"
+                        class="hidden sm:flex items-center justify-center w-12 h-12 rounded-full bg-slate-900/90 hover:bg-violet-600 text-slate-300 hover:text-white border border-slate-700 hover:border-violet-500 shadow-xl transition-all duration-200 z-30 cursor-pointer mr-4 hover:scale-110 active:scale-95"
+                        title="Previous Card"
+                    >
+                        <i data-lucide="chevron-left" class="w-6 h-6"></i>
+                    </button>
+
+                    <!-- Inner Tasks Dynamic Wrapper -->
+                    <div id="tasksWrapper" class="stack-view relative mx-auto transition-all duration-300">
+                        <!-- Dynamic Cards Injected by JS -->
+                    </div>
+
+                    <button 
+                        id="stackNextBtn"
+                        onclick="flipStackNext()"
+                        class="hidden sm:flex items-center justify-center w-12 h-12 rounded-full bg-slate-900/90 hover:bg-violet-600 text-slate-300 hover:text-white border border-slate-700 hover:border-violet-500 shadow-xl transition-all duration-200 z-30 cursor-pointer ml-4 hover:scale-110 active:scale-95"
+                        title="Next Card"
+                    >
+                        <i data-lucide="chevron-right" class="w-6 h-6"></i>
+                    </button>
+
+                </div>
+
+                <!-- Stack Pagination Dots -->
+                <div id="stackDotsContainer" class="flex justify-center items-center gap-2 mt-8 py-2">
+                    <!-- Dynamic Dots Injected by JS -->
+                </div>
+
+                <div id="stackSwipeHint" class="text-center text-xs text-slate-400 mt-2 font-medium flex items-center justify-center gap-1.5">
+                    <i data-lucide="move-horizontal" class="w-4 h-4 text-emerald-400"></i>
+                    <span>Drag and throw the top card left or right to flip</span>
+                </div>
+
+            </div>
+
+            <!-- No search results state -->
+            <div id="noSearchState" class="hidden bg-slate-900/40 border border-dashed border-slate-800 rounded-3xl p-8 text-center max-w-md mx-auto">
+                <i data-lucide="search-x" class="w-8 h-8 text-slate-500 mx-auto mb-2"></i>
+                <h4 class="text-base font-semibold text-slate-300">No matching tasks found</h4>
+                <p class="text-xs text-slate-500 mt-1">Try searching for a different keyword.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Full Read More Modal -->
+    <div id="readMoreModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-violet-500/30 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div class="px-6 py-5 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                    <span id="modalFilename" class="text-xs font-mono font-semibold px-3 py-1 rounded-lg bg-violet-500/10 text-violet-300 border border-violet-500/20"></span>
+                    <h3 id="modalTitle" class="text-2xl font-extrabold text-white mt-2"></h3>
+                    <div class="flex items-center gap-4 text-xs text-slate-400 mt-1.5 font-mono">
+                        <span id="modalDate"></span>
+                        <span id="modalWords" class="text-emerald-400"></span>
+                    </div>
+                </div>
+                <button onclick="closeTaskModal()" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition cursor-pointer">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto flex-1">
+                <div id="modalContent" class="text-slate-100 text-base sm:text-lg leading-relaxed whitespace-pre-wrap break-words font-sans bg-slate-950/60 p-6 sm:p-7 rounded-2xl border border-slate-800/80"></div>
+            </div>
+
+            <div class="px-6 py-4 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <button onclick="copyModalContent()" id="modalCopyBtn" class="inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition cursor-pointer">
+                        <i data-lucide="copy" class="w-3.5 h-3.5" id="modalCopyIcon"></i>
+                        <span id="modalCopyText">Copy Text</span>
+                    </button>
+                    <button onclick="downloadActiveTaskTxt()" class="inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition cursor-pointer">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        <span>Download .txt</span>
+                    </button>
+                </div>
+                <button onclick="closeTaskModal()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-emerald-600 hover:from-violet-500 hover:to-emerald-500 text-white text-xs font-extrabold shadow-lg shadow-violet-600/30 transition cursor-pointer">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Task Modal -->
+    <div id="editTaskModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-violet-500/30 rounded-3xl max-w-xl w-full flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div class="px-6 py-5 border-b border-slate-800 flex items-center justify-between">
+                <h3 class="text-xl font-extrabold text-white">Edit Task</h3>
+                <button onclick="closeEditModal()" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition cursor-pointer">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form onsubmit="handleSaveEdit(event)" class="p-6 space-y-4">
+                <input type="hidden" id="editTaskId">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-200 mb-1">Task Title</label>
+                    <input type="text" id="editTaskTitle" required class="w-full px-4 py-3 bg-slate-950/70 border border-slate-700 rounded-xl text-slate-100 focus:ring-2 focus:ring-violet-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-200 mb-1">Task Description</label>
+                    <textarea id="editTaskDesc" rows="5" class="w-full px-4 py-3 bg-slate-950/70 border border-slate-700 rounded-xl text-slate-100 focus:ring-2 focus:ring-violet-500"></textarea>
+                </div>
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeEditModal()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition">Cancel</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-emerald-600 text-white text-xs font-extrabold transition">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-auto border-t border-slate-800 bg-slate-950/60 py-6 text-center text-xs text-slate-500">
+        TaskFlow &bull; All-in-One Standalone File Application &bull; Positive Theme & Morphing Card Stack
+    </footer>
+
+    <!-- Application Script -->
+    <script>
+        const DEFAULT_TASKS = [
+            {
+                id: '1',
+                title: 'Master NodeJS File System',
+                description: 'Understanding the Node.js File System (fs) module is essential for backend engineering.\n\nKey Concepts Covered:\n1. Synchronous vs Asynchronous file operations (always prefer non-blocking async operations in web servers).\n2. fs.writeFile(): Writes data to a file, replacing it if it already exists.\n3. fs.readFile(): Reads the entire contents of a file into memory with utf-8 encoding.\n4. fs.readdir(): Reads the contents of a directory, returning an array of filenames.\n5. fs.stat(): Retrieves detailed file metadata including creation time, modification time, and file size.\n6. fs.unlink(): Deletes a file from the disk.',
+                filename: 'Master_NodeJS_File_System.txt',
+                modifiedAt: new Date().toISOString()
+            },
+            {
+                id: '2',
+                title: 'Complete Express Routing Guide',
+                description: 'Express.js is a fast, unopinionated, minimalist web framework for Node.js.\n\nKey Routing Patterns used in this application:\n- Route Parameters (req.params): Captured via named route segments like /task/:filename.\n- Request Body (req.body): Contains key-value pairs submitted in form payloads.\n- HTTP Verbs: GET, POST, PUT, DELETE for full CRUD operations.',
+                filename: 'Complete_Express_Routing_Guide.txt',
+                modifiedAt: new Date(Date.now() - 3600000).toISOString()
+            }
+        ];
+
+        let tasks = [];
+        let currentLayout = 'stack';
+        let activeStackIndex = 0;
+        let isCardDragging = false;
+        let startPointerX = 0;
+        let startPointerY = 0;
+        let currentDeltaX = 0;
+        let activeDragCard = null;
+        let activeModalTask = null;
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTasks();
+            initKeyboardNav();
+        });
+
+        function loadTasks() {
+            const saved = localStorage.getItem('taskflow_tasks');
+            if (saved) {
+                try { tasks = JSON.parse(saved); } catch (e) { tasks = DEFAULT_TASKS; }
+            } else {
+                tasks = [...DEFAULT_TASKS];
+                saveTasks();
+            }
+            renderTasks();
+        }
+
+        function saveTasks() {
+            localStorage.setItem('taskflow_tasks', JSON.stringify(tasks));
+        }
+
+        function renderTasks() {
+            const wrapper = document.getElementById('tasksWrapper');
+            const emptyState = document.getElementById('emptyState');
+            const totalBadge = document.getElementById('totalTasksBadge');
+            const dotsContainer = document.getElementById('stackDotsContainer');
+
+            totalBadge.textContent = `Total: ${tasks.length} ${tasks.length === 1 ? 'Task' : 'Tasks'}`;
+
+            if (tasks.length === 0) {
+                wrapper.innerHTML = '';
+                dotsContainer.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            wrapper.innerHTML = '';
+            dotsContainer.innerHTML = '';
+
+            tasks.forEach((task, index) => {
+                const words = task.description ? task.description.trim().split(/\s+/).filter(Boolean).length : 0;
+                const snippet = task.description ? (task.description.length > 140 ? task.description.substring(0, 140) + '...' : task.description) : 'No description provided.';
+                
+                const card = document.createElement('div');
+                card.className = 'morph-card group bg-slate-900/95 border border-slate-800/90 hover:border-violet-500/60 rounded-3xl p-6 sm:p-7 transition-all duration-300 shadow-2xl relative cursor-grab active:cursor-grabbing select-none';
+                card.dataset.index = index;
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between gap-2 mb-3">
+                        <span class="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold px-3 py-1 rounded-lg bg-slate-800 text-violet-300 border border-violet-500/20 truncate max-w-[210px]">
+                            <i data-lucide="file-text" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                            <span class="truncate">${task.filename}</span>
+                        </span>
+                        <span class="text-[11px] text-emerald-400 font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                            ${words} ${words === 1 ? 'word' : 'words'}
+                        </span>
+                    </div>
+                    <h3 class="task-title text-xl font-extrabold text-white group-hover:text-violet-300 transition-colors line-clamp-2 mb-2 leading-snug">
+                        ${task.title}
+                    </h3>
+                    <p class="task-snippet text-sm text-slate-300 line-clamp-3 mb-6 leading-relaxed whitespace-pre-line">
+                        ${snippet}
+                    </p>
+                    <div class="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3 mt-auto">
+                        <button type="button" onclick="openTaskModal(${index})" class="inline-flex items-center gap-2 text-sm font-bold text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer group/btn">
+                            <span>Read More</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4 group-hover/btn:translate-x-1 transition-transform"></i>
+                        </button>
+                        <div class="flex items-center gap-1" onpointerdown="event.stopPropagation()">
+                            <button onclick="downloadTaskTxt(${index})" class="p-2 text-slate-400 hover:text-emerald-300 hover:bg-slate-800 rounded-xl transition-colors cursor-pointer" title="Download .txt">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="openEditModal(${index})" class="p-2 text-slate-400 hover:text-violet-300 hover:bg-slate-800 rounded-xl transition-colors cursor-pointer" title="Edit Task">
+                                <i data-lucide="pencil" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteTask(${index})" class="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer" title="Delete Task">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                wrapper.appendChild(card);
+
+                // Add dot
+                const dot = document.createElement('button');
+                dot.className = `stack-dot h-2.5 rounded-full transition-all duration-300 ${index === 0 ? 'w-8 bg-gradient-to-r from-violet-500 to-emerald-400' : 'w-2.5 bg-slate-700 hover:bg-slate-500'}`;
+                dot.onclick = () => setStackActiveIndex(index);
+                dotsContainer.appendChild(dot);
+            });
+
+            if (window.lucide) lucide.createIcons();
+            setLayoutMode(currentLayout);
+        }
+
+        function setLayoutMode(mode) {
+            currentLayout = mode;
+            const wrapper = document.getElementById('tasksWrapper');
+            const dotsContainer = document.getElementById('stackDotsContainer');
+            const swipeHint = document.getElementById('stackSwipeHint');
+            const prevBtn = document.getElementById('stackPrevBtn');
+            const nextBtn = document.getElementById('stackNextBtn');
+
+            ['stack', 'grid', 'list'].forEach(m => {
+                const btn = document.getElementById(`btn-layout-${m}`);
+                if (btn) {
+                    if (m === mode) {
+                        btn.className = 'layout-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md';
+                    } else {
+                        btn.className = 'layout-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800';
+                    }
+                }
+            });
+
+            wrapper.classList.remove('stack-view', 'grid-view', 'list-view');
+            wrapper.classList.add(`${mode}-view`);
+
+            if (mode === 'stack') {
+                dotsContainer.classList.remove('hidden');
+                swipeHint.classList.remove('hidden');
+                if (prevBtn) prevBtn.classList.remove('hidden');
+                if (nextBtn) nextBtn.classList.remove('hidden');
+                renderStackPositions();
+            } else {
+                dotsContainer.classList.add('hidden');
+                swipeHint.classList.add('hidden');
+                if (prevBtn) prevBtn.classList.add('hidden');
+                if (nextBtn) nextBtn.classList.add('hidden');
+                resetCardTransforms();
+            }
+        }
+
+        function renderStackPositions() {
+            if (currentLayout !== 'stack') return;
+            const wrapper = document.getElementById('tasksWrapper');
+            const cards = Array.from(wrapper.querySelectorAll('.morph-card:not(.hidden)'));
+            const total = cards.length;
+            if (total === 0) return;
+
+            cards.forEach((card, i) => {
+                const offset = (i - activeStackIndex + total) % total;
+                card.onpointerdown = null;
+                card.style.transition = 'transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.35s ease';
+
+                if (offset < 4) {
+                    const topOffset = offset * 14;
+                    const scale = 1 - offset * 0.04;
+                    const zIndex = 50 - offset;
+                    const rotate = offset === 0 ? 0 : (offset % 2 === 0 ? 2 : -2) * offset;
+                    const opacity = 1 - offset * 0.15;
+
+                    card.style.display = 'block';
+                    card.style.zIndex = zIndex;
+                    card.style.transform = `translate3d(0, ${topOffset}px, 0) scale(${scale}) rotate(${rotate}deg)`;
+                    card.style.opacity = opacity;
+
+                    if (offset === 0) {
+                        card.style.pointerEvents = 'auto';
+                        card.classList.add('cursor-grab');
+                        card.classList.remove('cursor-pointer');
+                        attachDragListeners(card, total);
+                    } else {
+                        card.style.pointerEvents = 'auto';
+                        card.classList.add('cursor-pointer');
+                        card.classList.remove('cursor-grab');
+                        card.onclick = () => setStackActiveIndex(i);
+                    }
+                } else {
+                    card.style.display = 'none';
+                    card.style.opacity = '0';
+                    card.style.pointerEvents = 'none';
+                }
+            });
+
+            updateStackDots();
+        }
+
+        function attachDragListeners(card, totalCards) {
+            card.onpointerdown = (e) => {
+                if (e.target.closest('button') || e.target.closest('a')) return;
+                isCardDragging = true;
+                activeDragCard = card;
+                startPointerX = e.clientX;
+                startPointerY = e.clientY;
+                currentDeltaX = 0;
+
+                card.setPointerCapture(e.pointerId);
+                card.style.transition = 'none';
+                card.classList.add('cursor-grabbing', 'ring-2', 'ring-violet-400');
+            };
+
+            card.onpointermove = (e) => {
+                if (!isCardDragging || activeDragCard !== card) return;
+                currentDeltaX = e.clientX - startPointerX;
+                const deltaY = (e.clientY - startPointerY) * 0.2;
+                const rotation = currentDeltaX * 0.07;
+                card.style.transform = `translate3d(${currentDeltaX}px, ${deltaY}px, 0) rotate(${rotation}deg) scale(1.04)`;
+            };
+
+            const handleRelease = (e) => {
+                if (!isCardDragging || activeDragCard !== card) return;
+                isCardDragging = false;
+                activeDragCard = null;
+                card.classList.remove('cursor-grabbing', 'ring-2', 'ring-violet-400');
+                try { card.releasePointerCapture(e.pointerId); } catch (_) {}
+
+                const threshold = 70;
+                if (currentDeltaX > threshold) {
+                    card.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out';
+                    card.style.transform = `translate3d(400px, 0, 0) rotate(20deg) scale(0.85)`;
+                    card.style.opacity = '0';
+                    setTimeout(() => {
+                        activeStackIndex = (activeStackIndex - 1 + totalCards) % totalCards;
+                        renderStackPositions();
+                    }, 200);
+                } else if (currentDeltaX < -threshold) {
+                    card.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out';
+                    card.style.transform = `translate3d(-400px, 0, 0) rotate(-20deg) scale(0.85)`;
+                    card.style.opacity = '0';
+                    setTimeout(() => {
+                        activeStackIndex = (activeStackIndex + 1) % totalCards;
+                        renderStackPositions();
+                    }, 200);
+                } else {
+                    card.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                    card.style.transform = 'translate3d(0, 0, 0) scale(1) rotate(0deg)';
+                }
+            };
+
+            card.onpointerup = handleRelease;
+            card.onpointercancel = handleRelease;
+        }
+
+        function flipStackNext() {
+            const visible = document.querySelectorAll('.morph-card:not(.hidden)');
+            if (visible.length <= 1) return;
+            activeStackIndex = (activeStackIndex + 1) % visible.length;
+            renderStackPositions();
+        }
+
+        function flipStackPrev() {
+            const visible = document.querySelectorAll('.morph-card:not(.hidden)');
+            if (visible.length <= 1) return;
+            activeStackIndex = (activeStackIndex - 1 + visible.length) % visible.length;
+            renderStackPositions();
+        }
+
+        function resetCardTransforms() {
+            const wrapper = document.getElementById('tasksWrapper');
+            const cards = wrapper.querySelectorAll('.morph-card');
+            cards.forEach(card => {
+                card.onpointerdown = null;
+                card.onpointermove = null;
+                card.onpointerup = null;
+                card.style.display = card.classList.contains('hidden') ? 'none' : 'block';
+                card.style.transform = '';
+                card.style.zIndex = '';
+                card.style.opacity = '';
+                card.style.pointerEvents = 'auto';
+                card.classList.remove('cursor-grab', 'cursor-grabbing');
+            });
+        }
+
+        function setStackActiveIndex(index) {
+            activeStackIndex = index;
+            renderStackPositions();
+        }
+
+        function updateStackDots() {
+            const dots = document.querySelectorAll('.stack-dot');
+            dots.forEach((dot, index) => {
+                if (index === activeStackIndex) {
+                    dot.className = 'stack-dot h-2.5 rounded-full transition-all duration-300 w-8 bg-gradient-to-r from-violet-500 to-emerald-400';
+                } else {
+                    dot.className = 'stack-dot h-2.5 rounded-full transition-all duration-300 w-2.5 bg-slate-700 hover:bg-slate-500';
+                }
+            });
+        }
+
+        function handleCreateTask(e) {
+            e.preventDefault();
+            const title = document.getElementById('taskTitleInput').value.trim();
+            const desc = document.getElementById('taskDescInput').value.trim();
+            if (!title) return;
+
+            const cleanTitle = title.replace(/[/\\?%*:|"<>]/g, '').replace(/\s+/g, '_');
+            const newTask = {
+                id: Date.now().toString(),
+                title: title,
+                description: desc,
+                filename: `${cleanTitle}.txt`,
+                modifiedAt: new Date().toISOString()
+            };
+
+            tasks.unshift(newTask);
+            saveTasks();
+            renderTasks();
+
+            document.getElementById('taskTitleInput').value = '';
+            document.getElementById('taskDescInput').value = '';
+            activeStackIndex = 0;
+            if (currentLayout === 'stack') renderStackPositions();
+        }
+
+        function openTaskModal(index) {
+            const task = tasks[index];
+            if (!task) return;
+            activeModalTask = task;
+
+            const words = task.description ? task.description.trim().split(/\s+/).filter(Boolean).length : 0;
+            document.getElementById('modalTitle').textContent = task.title;
+            document.getElementById('modalFilename').textContent = task.filename;
+            document.getElementById('modalDate').textContent = new Date(task.modifiedAt).toLocaleString();
+            document.getElementById('modalWords').textContent = `${words} words (${(task.description || '').length} chars)`;
+            document.getElementById('modalContent').textContent = task.description || 'No description provided.';
+
+            document.getElementById('readMoreModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeTaskModal() {
+            document.getElementById('readMoreModal').classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        function copyModalContent() {
+            const text = document.getElementById('modalContent')?.innerText || '';
+            navigator.clipboard.writeText(text).then(() => {
+                const span = document.getElementById('modalCopyText');
+                span.textContent = 'Copied!';
+                span.classList.add('text-emerald-400');
+                setTimeout(() => {
+                    span.textContent = 'Copy Text';
+                    span.classList.remove('text-emerald-400');
+                }, 2000);
+            });
+        }
+
+        function downloadTaskTxt(index) {
+            const task = tasks[index];
+            if (!task) return;
+            const blob = new Blob([task.description || ''], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = task.filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadActiveTaskTxt() {
+            if (!activeModalTask) return;
+            const blob = new Blob([activeModalTask.description || ''], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = activeModalTask.filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function openEditModal(index) {
+            const task = tasks[index];
+            if (!task) return;
+            document.getElementById('editTaskId').value = index;
+            document.getElementById('editTaskTitle').value = task.title;
+            document.getElementById('editTaskDesc').value = task.description || '';
+            document.getElementById('editTaskModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editTaskModal').classList.add('hidden');
+        }
+
+        function handleSaveEdit(e) {
+            e.preventDefault();
+            const index = parseInt(document.getElementById('editTaskId').value);
+            const task = tasks[index];
+            if (!task) return;
+
+            task.title = document.getElementById('editTaskTitle').value.trim();
+            task.description = document.getElementById('editTaskDesc').value.trim();
+            task.filename = `${task.title.replace(/[/\\?%*:|"<>]/g, '').replace(/\s+/g, '_')}.txt`;
+            task.modifiedAt = new Date().toISOString();
+
+            saveTasks();
+            renderTasks();
+            closeEditModal();
+        }
+
+        function deleteTask(index) {
+            const task = tasks[index];
+            if (!task) return;
+            if (confirm(`Are you sure you want to delete "${task.title}"?`)) {
+                tasks.splice(index, 1);
+                saveTasks();
+                activeStackIndex = 0;
+                renderTasks();
+            }
+        }
+
+        function filterTasks() {
+            const query = document.getElementById('taskSearchInput').value.toLowerCase().trim();
+            const cards = document.querySelectorAll('.morph-card');
+            const noSearch = document.getElementById('noSearchState');
+            let visibleCount = 0;
+
+            cards.forEach(card => {
+                const title = card.querySelector('.task-title')?.innerText.toLowerCase() || '';
+                const snippet = card.querySelector('.task-snippet')?.innerText.toLowerCase() || '';
+                if (title.includes(query) || snippet.includes(query)) {
+                    card.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+
+            if (noSearch) {
+                if (visibleCount === 0 && query.length > 0) noSearch.classList.remove('hidden');
+                else noSearch.classList.add('hidden');
+            }
+
+            activeStackIndex = 0;
+            if (currentLayout === 'stack') renderStackPositions();
+        }
+
+        function initKeyboardNav() {
+            window.addEventListener('keydown', (e) => {
+                if (currentLayout !== 'stack') return;
+                if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+                if (e.key === 'ArrowRight') flipStackNext();
+                else if (e.key === 'ArrowLeft') flipStackPrev();
+            });
+        }
+    </script>
+</body>
+</html>
